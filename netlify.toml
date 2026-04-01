@@ -1,6 +1,9 @@
 [build]
   publish = "."
-  command = "echo 'No build needed'"
+  command = ""
 
 [build.environment]
   NODE_VERSION = "22"
+
+[context.production]
+  base = "."

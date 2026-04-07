@@ -1,0 +1,170 @@
+/* CD Chatbot Widget — Floating chat bubble + iframe overlay */
+
+/* Floating trigger button — bottom right */
+.cd-widget-trigger {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99998;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #0d3b6e 0%, #1a5fa8 50%, #c0392b 100%);
+  box-shadow: 0 4px 20px rgba(13, 59, 110, 0.4), 0 2px 8px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.cd-widget-trigger:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(13, 59, 110, 0.5), 0 3px 12px rgba(0,0,0,0.25);
+}
+
+.cd-widget-trigger:active {
+  transform: scale(0.96);
+}
+
+/* Pulse ring animation on load */
+.cd-widget-trigger::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(26, 95, 168, 0.4);
+  animation: cdPulse 2.5s ease-out infinite;
+}
+
+@keyframes cdPulse {
+  0% { transform: scale(1); opacity: 1; }
+  70% { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+
+/* Stop pulse after widget has been opened once */
+.cd-widget-trigger.cd-opened::before {
+  display: none;
+}
+
+/* Icons inside the trigger */
+.cd-widget-trigger svg {
+  width: 28px;
+  height: 28px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.cd-widget-trigger .cd-icon-chat { opacity: 1; transform: scale(1); }
+.cd-widget-trigger .cd-icon-close { position: absolute; opacity: 0; transform: scale(0.5); }
+
+.cd-widget-trigger.cd-active .cd-icon-chat { opacity: 0; transform: scale(0.5); }
+.cd-widget-trigger.cd-active .cd-icon-close { opacity: 1; transform: scale(1); }
+
+/* Chat window container */
+.cd-widget-window {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  z-index: 99999;
+  width: 400px;
+  height: 580px;
+  max-height: calc(100dvh - 120px);
+  max-width: calc(100vw - 32px);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.15);
+  opacity: 0;
+  transform: translateY(16px) scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.cd-widget-window.cd-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.cd-widget-window iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #f0f4f8;
+}
+
+/* Tooltip / label on hover */
+.cd-widget-label {
+  position: fixed;
+  bottom: 40px;
+  right: 96px;
+  z-index: 99997;
+  background: #1a1a2e;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 6px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  opacity: 0;
+  transform: translateX(8px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.cd-widget-trigger:hover ~ .cd-widget-label:not(.cd-hidden),
+.cd-widget-label.cd-show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.cd-widget-label.cd-hidden {
+  display: none;
+}
+
+.cd-widget-label::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: #1a1a2e;
+  border-right: none;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .cd-widget-window {
+    bottom: 0;
+    right: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    max-width: 100vw;
+    border-radius: 0;
+  }
+
+  .cd-widget-trigger {
+    bottom: 16px;
+    right: 16px;
+    width: 54px;
+    height: 54px;
+  }
+
+  .cd-widget-trigger svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .cd-widget-label {
+    display: none;
+  }
+}

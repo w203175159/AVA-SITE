@@ -46,13 +46,28 @@ function handleSubmit(e) {
   const form = document.getElementById('contactForm');
   const success = document.getElementById('formSuccess');
   
-  // Simulate submission
   const btn = form.querySelector('button[type="submit"]');
   btn.textContent = 'Sending...';
   btn.disabled = true;
   
-  setTimeout(() => {
-    form.style.display = 'none';
-    success.style.display = 'block';
-  }, 800);
+  const formData = new FormData(form);
+  
+  fetch('/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(formData).toString()
+  })
+  .then(response => {
+    if (response.ok) {
+      form.style.display = 'none';
+      success.style.display = 'block';
+    } else {
+      throw new Error('Form submission failed');
+    }
+  })
+  .catch(error => {
+    btn.textContent = 'Send Message';
+    btn.disabled = false;
+    alert('There was a problem sending your message. Please try again or email us directly at apexvisionadvisors@gmail.com');
+  });
 }

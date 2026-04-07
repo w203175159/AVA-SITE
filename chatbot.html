@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CD Chatbot — Compassionate Dialogue</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cd-navy:   #0d3b6e;
+    --cd-blue:   #1a5fa8;
+    --cd-red:    #c0392b;
+    --cd-light:  #e8f0fe;
+    --cd-bg:     #f4f7fb;
+    --cd-white:  #ffffff;
+    --cd-text:   #1a1a2e;
+    --cd-muted:  #6b7280;
+    --cd-border: #dde3ec;
+    --cd-radius: 16px;
+    --cd-shadow: 0 4px 24px rgba(13,59,110,0.10);
+  }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--cd-bg);
+    color: var(--cd-text);
+  }
+
+  /* ── Layout ── */
+  .cd-app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--cd-white);
+    box-shadow: var(--cd-shadow);
+    position: relative;
+  }
+
+  /* ── Header ── */
+  .cd-header {
+    background: linear-gradient(135deg, var(--cd-navy) 0%, var(--cd-blue) 60%, var(--cd-red) 100%);
+    color: white;
+    padding: 16px 20px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .cd-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+
+  .cd-avatar svg { width: 26px; height: 26px; }
+
+  .cd-header-info { flex: 1; min-width: 0; }
+  .cd-header-name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .cd-header-status {
+    font-size: 12px;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+  }
+  .cd-status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 2px rgba(74,222,128,0.3);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .cd-disclaimer-badge {
+    font-size: 10px;
+    background: rgba(255,255,255,0.18);
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.25);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── Messages ── */
+  .cd-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+
+  .cd-messages::-webkit-scrollbar { width: 4px; }
+  .cd-messages::-webkit-scrollbar-thumb { background: var(--cd-border); border-radius: 4px; }
+
+  /* Message bubbles */
+  .cd-msg {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 88%;
+    animation: fadeUp 0.3s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .cd-msg.user { margin-left: auto; flex-direction: row-reverse; }
+
+  .cd-msg-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cd-navy), var(--cd-blue));
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 12px; color: white; font-weight: 700;
+  }
+
+  .cd-msg.user .cd-msg-avatar {
+    background: linear-gradient(135deg, var(--cd-red), #e74c3c);
+  }
+
+  .cd-bubble {
+    padding: 11px 15px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.55;
+    max-width: 100%;
+  }
+
+  .cd-msg.bot .cd-bubble {
+    background: var(--cd-light);
+    color: var(--cd-text);
+    border-bottom-left-radius: 4px;
+  }
+
+  .cd-msg.user .cd-bubble {
+    background: linear-gradient(135deg, var(--cd-navy), var(--cd-blue));
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .cd-bubble p { margin: 0 0 6px; }
+  .cd-bubble p:last-child { margin-bottom: 0; }
+
+  /* Typing indicator */
+  .cd-typing .cd-bubble {
+    padding: 13px 18px;
+    display: flex; gap: 5px; align-items: center;
+  }
+  .cd-dot {
+    width: 7px; height: 7px;
+    background: var(--cd-blue);
+    border-radius: 50%;
+    animation: bounce 1.2s ease-in-out infinite;
+    opacity: 0.6;
+  }
+  .cd-dot:nth-child(2) { animation-delay: 0.2s; }
+  .cd-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); }
+  }
+
+  /* Quick reply chips */
+  .cd-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 0 16px 8px;
+  }
+  .cd-chip {
+    background: var(--cd-white);
+    border: 1.5px solid var(--cd-blue);
+    color: var(--cd-blue);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .cd-chip:hover {
+    background: var(--cd-blue);
+    color: white;
+  }
+
+  /* ── Input area ── */
+  .cd-input-area {
+    flex-shrink: 0;
+    border-top: 1px solid var(--cd-border);
+    background: var(--cd-white);
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .cd-textarea-wrap {
+    flex: 1;
+    background: var(--cd-bg);
+    border: 1.5px solid var(--cd-border);
+    border-radius: 22px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    transition: border-color 0.2s;
+  }
+  .cd-textarea-wrap:focus-within {
+    border-color: var(--cd-blue);
+    box-shadow: 0 0 0 3px rgba(26,95,168,0.1);
+  }
+
+  #cd-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 14px;
+    line-height: 1.5;
+    max-height: 100px;
+    overflow-y: auto;
+    color: var(--cd-text);
+    font-family: inherit;
+  }
+  #cd-input::placeholder { color: var(--cd-muted); }
+
+  .cd-send {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cd-navy), var(--cd-blue));
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(13,59,110,0.25);
+  }
+  .cd-send:hover { transform: scale(1.06); box-shadow: 0 3px 12px rgba(13,59,110,0.35); }
+  .cd-send:active { transform: scale(0.95); }
+  .cd-send svg { width: 18px; height: 18px; fill: white; }
+
+  /* ── Crisis banner ── */
+  .cd-crisis {
+    background: #fff3cd;
+    border-top: 1px solid #ffc107;
+    padding: 8px 16px;
+    font-size: 11.5px;
+    color: #7d4e00;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .cd-crisis a { color: #7d4e00; font-weight: 700; }
+
+  /* ── Powered-by footer ── */
+  .cd-footer {
+    text-align: center;
+    font-size: 10px;
+    color: var(--cd-muted);
+    padding: 5px;
+    border-top: 1px solid var(--cd-border);
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="cd-app" id="cdApp">
+
+  <!-- Header -->
+  <div class="cd-header">
+    <div class="cd-avatar">
+      <svg viewBox="0 0 32 32" fill="none">
+        <path d="M16 27C16 27 5 19.5 5 11.5C5 8.42 7.42 6 10.5 6C12.24 6 13.79 6.81 14.84 8.06L16 9.5L17.16 8.06C18.21 6.81 19.76 6 21.5 6C24.58 6 27 8.42 27 11.5C27 19.5 16 27 16 27Z" fill="white" opacity="0.9"/>
+        <text x="16" y="17.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="#0d3b6e" font-family="system-ui,sans-serif">CD</text>
+      </svg>
+    </div>
+    <div class="cd-header-info">
+      <div class="cd-header-name">CD — Compassionate Dialogue</div>
+      <div class="cd-header-status">
+        <span class="cd-status-dot"></span>
+        Active &amp; Listening
+      </div>
+    </div>
+    <span class="cd-disclaimer-badge">AI Companion</span>
+  </div>
+
+  <!-- Messages -->
+  <div class="cd-messages" id="cdMessages"></div>
+
+  <!-- Quick chips (shown initially) -->
+  <div class="cd-chips" id="cdChips">
+    <button class="cd-chip" onclick="sendChip(this)">I'm feeling stressed</button>
+    <button class="cd-chip" onclick="sendChip(this)">I need to talk</button>
+    <button class="cd-chip" onclick="sendChip(this)">Help me with anxiety</button>
+    <button class="cd-chip" onclick="sendChip(this)">I feel overwhelmed</button>
+  </div>
+
+  <!-- Input -->
+  <div class="cd-input-area">
+    <div class="cd-textarea-wrap">
+      <textarea id="cd-input" rows="1" placeholder="Share what's on your mind…" aria-label="Type a message"></textarea>
+    </div>
+    <button class="cd-send" id="cdSend" aria-label="Send message" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+    </button>
+  </div>
+
+  <!-- Crisis line -->
+  <div class="cd-crisis">
+    If you are in crisis, please call or text <a href="tel:988">988</a> (Suicide &amp; Crisis Lifeline) or call <a href="tel:911">911</a>.
+  </div>
+
+  <!-- Footer -->
+  <div class="cd-footer">CD is an AI companion, not a licensed therapist. Not a substitute for professional mental health care.</div>
+
+</div>
+
+<script>
+// ============================================================
+//  CD Chatbot — Compassionate Dialogue
+//  Therapist-informed AI companion with CBT, MI, PCT elements
+// ============================================================
+
+const RESPONSES = {
+  // Greetings / openers
+  greet: [
+    "Hello, I'm so glad you reached out. I'm here and I'm listening. How are you feeling right now?",
+    "Welcome. This is a safe space. There's no right or wrong way to share — whatever's on your mind, I'm here for it. How are you today?",
+    "Hi there. I'm CD, and I'm genuinely here to listen. Take your time — what would you like to talk about today?"
+  ],
+  // Stress
+  stress: [
+    "It sounds like you're carrying a lot right now. Stress has a way of building up without us even realizing it. Can you tell me more about what's been weighing on you?",
+    "I hear you. Stress can feel so heavy sometimes. What do you think is the biggest source of pressure for you at the moment?",
+    "That makes complete sense. When we're stretched thin, everything can feel harder. Let's slow down for a second — what's one thing that's been draining you the most?"
+  ],
+  // Anxiety
+  anxiety: [
+    "Anxiety can be really exhausting — it keeps your mind running even when you just want to rest. I want you to know you're not alone in this. What does your anxiety feel like for you — is it more worry, physical tension, or something else?",
+    "Thank you for naming that. Anxiety often lies to us, making threats feel bigger than they are. What's been triggering it most lately?",
+    "I understand. Sometimes anxiety shows up as a signal that something matters to us. What's been on your mind that might be feeding it?"
+  ],
+  // Sadness / depression
+  sad: [
+    "I'm sorry you're feeling that way. Sadness is a valid and human experience — it doesn't mean something is wrong with you. Would you like to share more about what's been going on?",
+    "I hear the weight in what you're sharing. Sometimes we need someone to simply sit with us in that feeling. I'm here. What's been on your heart?",
+    "That sounds really painful. You don't have to go through this alone. Can you tell me a little more about when this feeling started?"
+  ],
+  // Overwhelmed
+  overwhelmed: [
+    "When everything piles up at once, it's easy to feel like you're drowning. Let's break this down together — what feels most urgent or out of control right now?",
+    "That feeling of overwhelm is real and valid. It often means we've been giving a lot without enough support in return. What would feel like relief right now, even just a small piece?",
+    "I hear you. Overwhelm can make it hard to know where to even start. Let's take one breath together, and then tell me — what's at the top of the pile?"
+  ],
+  // Loneliness
+  lonely: [
+    "Loneliness is one of the hardest feelings — even being in a crowd doesn't always touch it. What does connection mean to you? Is there someone in your life you've been missing?",
+    "Thank you for sharing that. Many people feel exactly this way and don't say it. You're not alone in feeling alone. What do you think has been keeping you from connecting?",
+    "I'm here with you right now. Loneliness can feel like a wall between you and the world. What would feeling connected look like for you?"
+  ],
+  // Anger
+  angry: [
+    "Anger is a powerful emotion — and it's usually telling us something important about what we value or what feels unfair. What happened that brought this up for you?",
+    "It sounds like something really got under your skin. That's completely understandable. Can you walk me through what happened?",
+    "I want to understand. Beneath anger, there's often hurt or frustration that hasn't been heard yet. What do you wish the other person understood?"
+  ],
+  // Self-doubt / confidence
+  confidence: [
+    "Self-doubt has a way of making the loudest voice in our head the least kind one. Can you tell me about a moment recently where you felt you weren't enough?",
+    "I hear you. It takes courage to admit those feelings. What would you say to a close friend who shared those same doubts about themselves?",
+    "That inner critic can be relentless. Let's challenge it a little — what's one thing you've done recently that took strength, even if it felt small?"
+  ],
+  // Trauma / difficult past
+  trauma: [
+    "Thank you for trusting me with something so significant. You don't have to share more than you're comfortable with — I'm here at your pace. What would feel helpful right now?",
+    "That takes real courage to acknowledge. What you went through matters, and so does how it's affecting you today. What kind of support feels most useful to you?",
+    "I want you to know that what happened to you was not your fault, and your feelings about it make complete sense. Would you like to talk through it, or would it help to focus on how you're managing it now?"
+  ],
+  // Relationships
+  relationship: [
+    "Relationships can bring so much joy — and so much pain. What's been happening in this relationship that's been weighing on you?",
+    "It sounds like something shifted. When did you first notice things feeling off?",
+    "Navigating relationships is genuinely hard. Sometimes we give more than we receive and lose ourselves in the process. What do you need from this relationship that you're not getting?"
+  ],
+  // Sleep / exhaustion
+  tired: [
+    "Exhaustion affects everything — our mood, our thoughts, our ability to cope. How long have you been feeling this way? Is it more emotional tiredness, physical, or both?",
+    "Rest is so essential, and when it eludes us, everything feels harder. What do you think is getting in the way of you recharging?",
+    "I hear you. Sometimes our bodies and minds need us to slow down before they'll let us. What does rest look like for you when it actually happens?"
+  ],
+  // Work / career stress
+  work: [
+    "Work stress can be all-consuming. It has a way of following us home and making it hard to ever really switch off. What's been most challenging at work lately?",
+    "That kind of pressure adds up. Are you feeling stressed about the workload itself, the environment, or something specific that happened?",
+    "I hear that. Sometimes the weight of responsibility can feel like it's all on us. What would support look like in your work situation right now?"
+  ],
+  // Gratitude / positive
+  positive: [
+    "It's wonderful to hear something positive. Recognizing the good things, even small ones, is actually a powerful practice. What made this feel meaningful to you?",
+    "That's genuinely great. Holding onto those moments is important — especially on the harder days. Would you like to explore what more of that could look like in your life?",
+    "I love hearing that. You deserve more of those moments. What do you think contributed to it?"
+  ],
+  // Help / crisis
+  crisis: [
+    "I hear you, and I want to make sure you're safe. If you're having thoughts of hurting yourself, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. You matter, and there are people ready to help right now.",
+    "Thank you for reaching out. What you're feeling is real, and you don't have to face it alone. Please consider calling or texting 988 — it's free, confidential, and available 24/7. I'm here with you too.",
+    "Your life has value, and I'm genuinely concerned for you right now. Please call or text 988 immediately. I'll be here when you need to talk further, but please get that support first."
+  ],
+  // Gratitude to CD
+  thanks: [
+    "You're so welcome. I'm truly glad this has been helpful. Remember — you have more strength than you give yourself credit for. I'm here whenever you need to talk.",
+    "It means a lot that you shared with me. Thank you for trusting me. You deserve this kind of space to be heard.",
+    "That warms my heart. You did the hard work — I just walked alongside you. Come back anytime."
+  ],
+  // Default / fallback
+  default: [
+    "I hear you. Can you tell me a little more about what that's been like for you?",
+    "That sounds really significant. How long have you been carrying that?",
+    "Thank you for sharing that with me. It takes courage to talk about these things. What do you think would feel most helpful right now?",
+    "I'm here, and I'm listening. What you're feeling makes sense. Would you like to explore that a bit more together?",
+    "I want to understand better. How does that make you feel when you sit with it?",
+    "You're not alone in feeling this way. What would a small step toward relief look like for you right now?",
+    "Sometimes just naming what we're going through is the first step. Is there more you'd like to share about that?"
+  ]
+};
+
+let msgCount = 0;
+
+function getRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function classify(text) {
+  const t = text.toLowerCase();
+  if (/\b(hello|hi|hey|good morning|good evening|good afternoon|what's up|sup)\b/.test(t)) return 'greet';
+  if (/\b(hurt myself|end it|not want to be here|suicid|kill myself|self.harm|no reason to live|give up on life)\b/.test(t)) return 'crisis';
+  if (/\b(stress|stressed|pressure|too much|burning out|burn out)\b/.test(t)) return 'stress';
+  if (/\b(anxi|panic|worry|worrying|scared|fear|phobia|nervous)\b/.test(t)) return 'anxiety';
+  if (/\b(sad|depress|unhappy|hopeless|empty|numb|cry|crying|miserable|down)\b/.test(t)) return 'sad';
+  if (/\b(overwhelm|too much|can't cope|falling apart|losing it|breaking down)\b/.test(t)) return 'overwhelmed';
+  if (/\b(lonely|alone|isolat|no one|nobody|left out|disconnected)\b/.test(t)) return 'lonely';
+  if (/\b(angry|anger|furious|mad|rage|frustrated|irritated|annoyed)\b/.test(t)) return 'angry';
+  if (/\b(confident|confidence|doubt|not good enough|worthless|failure|loser|insecure)\b/.test(t)) return 'confidence';
+  if (/\b(trauma|abuse|assault|past|haunting|flashback|ptsd)\b/.test(t)) return 'trauma';
+  if (/\b(relationship|partner|boyfriend|girlfriend|husband|wife|marriage|breakup|divorce|dating)\b/.test(t)) return 'relationship';
+  if (/\b(tired|exhausted|drained|no energy|fatigue|sleep|insomnia|can't sleep)\b/.test(t)) return 'tired';
+  if (/\b(work|job|boss|colleague|career|office|fired|quit|workplace)\b/.test(t)) return 'work';
+  if (/\b(happy|grateful|good|great|better|progress|excited|hopeful|proud)\b/.test(t)) return 'positive';
+  if (/\b(thank|thanks|appreciate|grateful|helped)\b/.test(t)) return 'thanks';
+  return 'default';
+}
+
+function addMsg(role, html, isTyping = false) {
+  const msgs = document.getElementById('cdMessages');
+  const div = document.createElement('div');
+  div.className = `cd-msg ${role}${isTyping ? ' cd-typing' : ''}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'cd-msg-avatar';
+  avatar.textContent = role === 'bot' ? 'CD' : 'You';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'cd-bubble';
+  bubble.innerHTML = html;
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  return addMsg('bot', '<span class="cd-dot"></span><span class="cd-dot"></span><span class="cd-dot"></span>', true);
+}
+
+function sendChip(btn) {
+  const text = btn.textContent;
+  document.getElementById('cdChips').style.display = 'none';
+  processUserMessage(text);
+}
+
+function sendMessage() {
+  const input = document.getElementById('cd-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('cdChips').style.display = 'none';
+  processUserMessage(text);
+}
+
+function processUserMessage(text) {
+  addMsg('user', escapeHtml(text));
+  msgCount++;
+
+  const typingEl = showTyping();
+  const delay = 900 + Math.random() * 700;
+
+  setTimeout(() => {
+    typingEl.remove();
+    const category = classify(text);
+    const response = getRandom(RESPONSES[category]);
+    addMsg('bot', formatResponse(response));
+
+    // After every 4 messages, offer a grounding exercise
+    if (msgCount > 0 && msgCount % 4 === 0) {
+      setTimeout(() => {
+        const groundingPrompts = [
+          "Would you like to try a quick grounding exercise together? Sometimes just 60 seconds of focused breathing can help reset our nervous system.",
+          "As we talk, I want to check in — have you had water, food, or a moment to breathe today? Taking care of our basic needs matters more than we think.",
+          "I'd like to offer you something: can you name 3 things you can see around you right now? It's a small way to anchor yourself in the present."
+        ];
+        addMsg('bot', getRandom(groundingPrompts));
+      }, 1500);
+    }
+  }, delay);
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatResponse(text) {
+  return text.split('\n').filter(Boolean).map(p => `<p>${p}</p>`).join('');
+}
+
+// Auto-resize textarea
+const input = document.getElementById('cd-input');
+input.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+// Enter to send (Shift+Enter for newline)
+input.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Initial greeting on load
+window.addEventListener('load', function() {
+  setTimeout(() => {
+    addMsg('bot', formatResponse(getRandom(RESPONSES.greet)));
+  }, 600);
+});
+</script>
+</body>
+</html>

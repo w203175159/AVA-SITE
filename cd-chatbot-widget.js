@@ -5,8 +5,8 @@
 (function () {
   'use strict';
 
-  // The deployed CD Chatbot URL
-  var CHATBOT_URL = 'https://www.perplexity.ai/computer/a/cd-chatbot-DCjaP2RXS.eUDU9f9q6qLg';
+  // CD Chatbot — self-hosted at /chatbot
+  var CHATBOT_URL = '/chatbot';
 
   // Prevent double-init
   if (document.getElementById('cd-widget-trigger')) return;
